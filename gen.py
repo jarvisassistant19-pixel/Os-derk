@@ -27,27 +27,57 @@ def header():
  {BLUE}>> SYSTEM CORE: {CODENAME} | VERSION: {VERSION} <<
  {YELLOW}>> DEVELOPER: BlackHatHacker-Ankit <<{RESET}""")
 
+
+
+def run_command(command):
+    """Run a shell command and stream output live."""
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True
+    )
+
+    for line in process.stdout:
+        print(line, end="")
+
+    process.wait()
+    return process.returncode
+
+
 def install_system():
     header()
     print(f"\n{YELLOW}[!] INITIALIZING SYSTEM INSTALLATION...{RESET}")
-    # Base packages needed for the OS and the attacks
+
     packages = [
-        "aircrack-ng", "crunch", "xterm", "wordlists", "reaver", 
-        "pixiewps", "bully", "wifite", "airgeddon", "dnsmasq", 
+        "aircrack-ng", "crunch", "xterm", "wordlists", "reaver",
+        "pixiewps", "bully", "wifite", "airgeddon", "dnsmasq",
         "hostapd", "lighttpd", "php-cgi"
     ]
-    
+
+    # Update package list first (recommended)
+    print(f"{BLUE}[*] Updating package list...{RESET}")
+    if run_command(["sudo", "apt-get", "update"]) != 0:
+        print(f"{RED}[!] Failed to update package list.{RESET}")
+        return
+
     for pkg in packages:
-        print(f"{BLUE}[*] Installing {pkg}...{RESET}")
-        os.system(f"sudo apt-get install -y {pkg} > /dev/null 2>&1")
-    
+        print(f"\n{BLUE}[*] Installing {pkg}...{RESET}")
+        result = run_command(["sudo", "apt-get", "install", "-y", pkg])
+        if result != 0:
+            print(f"{RED}[!] Failed to install {pkg}{RESET}")
+        else:
+            print(f"{GREEN}[+] {pkg} installed successfully.{RESET}")
+
     # Handle Rockyou
-    if not os.path.exists("/usr/share/wordlists/rockyou.txt"):
-        print(f"{YELLOW}[*] Extracting rockyou wordlist...{RESET}")
-        os.system("sudo gzip -d /usr/share/wordlists/rockyou.txt.gz > /dev/null 2>&1")
-    
+    rockyou_path = "/usr/share/wordlists/rockyou.txt"
+    if not os.path.exists(rockyou_path):
+        print(f"\n{YELLOW}[*] Extracting rockyou wordlist...{RESET}")
+        run_command(["sudo", "gzip", "-d", "/usr/share/wordlists/rockyou.txt.gz"])
+
     print(f"\n{GREEN}[+] SYSTEM READY. Press Enter to boot.{RESET}")
     input()
+
 
 def get_tool_info(choice):
     info = {
@@ -157,4 +187,5 @@ if __name__ == "__main__":
     if init.lower() == 'y':
         install_system()
     
+
     main_menu()
